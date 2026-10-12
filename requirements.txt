@@ -1,14 +1,14 @@
 
---extra-index-url https://download.pytorch.org/whl/cu118
-torch
-torchvision
+# --extra-index-url https://download.pytorch.org/whl/cu118
+# torch
+# torchvision
 langchain
 pypdf
 dotenv
 langgraph
-pytesseract
-pdf2image
-poppler-utils
+# pytesseract
+# pdf2image
+# poppler-utils
 
 tqdm
 langchain_text_splitters

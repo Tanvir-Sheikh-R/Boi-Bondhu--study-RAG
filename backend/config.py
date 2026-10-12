@@ -38,4 +38,11 @@ LLM_MAX_TOKENS = 2048
 
 TOC_KEYWORDS = ("সূচিপত্র", "সুচিপত্র", "বিষয়সূচি", "CONTENTS", "contents")
 
-CORS_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
+import os
+_env_cors = os.getenv("CORS_ORIGINS")
+CORS_ORIGINS = (
+    tuple(origin.strip() for origin in _env_cors.split(",") if origin.strip())
+    if _env_cors
+    else ("http://localhost:3000", "http://127.0.0.1:3000")
+)
+

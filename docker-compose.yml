@@ -1,0 +1,65 @@
+services:
+  # ========================================================
+  # 1. API Backend (FastAPI + RAG + multilingual-e5-large)
+  # ========================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: study-rag-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Persistent conversation threads
+      - ./backend/data:/app/backend/data
+      # Read-only dataset index & precomputed vector / OCR caches
+      - ./chapters.json:/app/chapters.json:ro
+      - ./embedding_cache:/app/embedding_cache:ro
+      - ./ocr_cache:/app/ocr_cache:ro
+      # HuggingFace model cache (persists downloaded model weights across runs)
+      - ./model_cache:/app/model_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Optional GPU reservation (uncomment if NVIDIA container runtime is configured):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # ========================================================
+  # 2. Web UI (Next.js + TailwindCSS)
+  # ========================================================
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    container_name: study-rag-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy

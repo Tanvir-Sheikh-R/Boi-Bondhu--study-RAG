@@ -1,4 +1,4 @@
-﻿# বই বন্ধু (Study-RAG)
+# বই বন্ধু (Study-RAG)
 
 Bengali textbook study assistant: pick a class, subject and chapter, ask a question
 in Bangla, and get an answer grounded in that NCTB textbook with the source passages
@@ -9,6 +9,27 @@ the artifacts this app reads (chapters.json, ocr_cache/, embedding_cache/,
 model_cache/). The backend never rewrites those artifacts.
 
 ## Run
+
+### Option 1: Docker (Recommended)
+
+Run both API and Web UI with a single command:
+
+    docker compose up --build
+
+- **Web UI:** http://localhost:3000
+- **API Backend:** http://localhost:8000 (Health check: http://localhost:8000/api/health)
+
+Or build and run individually:
+
+    # Backend
+    docker build -f Dockerfile.backend -t study-rag-backend .
+    docker run -p 8000:8000 --env-file .env study-rag-backend
+
+    # Web UI
+    docker build -t study-rag-web ./web
+    docker run -p 3000:3000 study-rag-web
+
+### Option 2: Local processes
 
 Two processes:
 
@@ -44,3 +65,16 @@ http://127.0.0.1:8000).
     python scripts/api_smoke_test.py            # end-to-end API + streamed answer
     node scripts/verify-stream.mjs <thread_id>  # frontend NDJSON parsing
     cd web; npx tsc --noEmit                    # types
+
+
+
+
+# 1. API Backend
+docker build -f Dockerfile.backend -t tanvirsheikh/study-rag-backend .
+docker push tanvirsheikh/study-rag-backend
+docker run -p 8000:8000 --env-file .env tanvirsheikh/study-rag-backend
+
+# 2. Web UI
+docker build -t tanvirsheikh/study-rag-web ./web
+docker push tanvirsheikh/study-rag-web
+docker run -p 3000:3000 tanvirsheikh/study-rag-web

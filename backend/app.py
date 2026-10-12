@@ -1,4 +1,4 @@
-"""বই বন্ধু FastAPI application: chapter tree, thread persistence, streamed chat."""
+"""পাঠ সমাধান FastAPI application: chapter tree, thread persistence, streamed chat."""
 
 # NOTE: no "from __future__ import annotations" here. FastAPI resolves endpoint
 # annotations at import time, and PEP 563 string annotations break Pydantic models
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="বই বন্ধু API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="পাঠ সমাধান API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

@@ -17,12 +17,15 @@ import uvicorn
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-HOST = "127.0.0.1"
-PORT = 8000
+import os
+
+HOST = os.getenv("HOST", "127.0.0.1")
+PORT = int(os.getenv("PORT", "8000"))
 
 
 def main() -> None:
-    uvicorn.run("backend.app:app", host=HOST, port=PORT, log_level="info", reload=True)
+    reload = os.getenv("RELOAD", "false").lower() in ("true", "1", "yes")
+    uvicorn.run("backend.app:app", host=HOST, port=PORT, log_level="info", reload=reload)
 
 if __name__ == "__main__":
     main()

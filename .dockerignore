@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Python virtual environments & bytecode
+.venv/
+myenv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE / editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Web frontend dependencies & build cache (backend image doesn't need them)
+web/
+.npm-cache/
+.dsh/
+.preview/
+
+# Heavy raw PDFs (embeddings and chapters.json are already extracted)
+pdf/
+
+model_cache/
+ocr_cache/
+pipeline/
+
+# Temporary / logs
+*.log
+*.tmp
+backend/data/threads/*.tmp
