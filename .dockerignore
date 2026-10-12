@@ -28,6 +28,8 @@ pdf/
 model_cache/
 ocr_cache/
 pipeline/
+.env
+.env.example
 
 # Temporary / logs
 *.log

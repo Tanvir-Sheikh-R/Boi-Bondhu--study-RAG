@@ -2,27 +2,43 @@
 # --extra-index-url https://download.pytorch.org/whl/cu118
 # torch
 # torchvision
-langchain
-pypdf
-dotenv
-langgraph
+# langchain
+# pypdf
+# dotenv
+# langgraph
 # pytesseract
 # pdf2image
 # poppler-utils
 
-tqdm
-langchain_text_splitters
-langchain_huggingface
+# tqdm
+# langchain_text_splitters
+# langchain_huggingface
 
-langchain_chroma
-sentence-transformers
-langchain_openai
-langchain_groq
-langchain_deepseek
-rapidfuzz
-easyocr
-faiss-cpu
-laya
-fastapi
-uvicorn
-langchain_community
+# langchain_chroma
+# sentence-transformers
+# langchain_openai
+# langchain_groq
+# langchain_deepseek
+# rapidfuzz
+# easyocr
+# faiss-cpu
+# laya
+# fastapi
+# uvicorn
+# langchain_community
+
+
+
+dotenv>=0.9.9
+faiss-cpu>=1.15.1
+fastapi>=0.143.0
+langchain>=1.4.4
+langchain-community>=0.4.2
+langchain-deepseek>=1.1.1
+langchain-groq>=1.1.3
+langchain-huggingface>=1.2.3
+langchain-text-splitters>=1.1.3
+langgraph>=1.2.14
+sentence-transformers>=6.1.0
+tqdm>=4.70.1
+uvicorn>=0.54.0
