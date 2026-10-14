@@ -6,7 +6,9 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 
 WORKDIR /app
 
@@ -16,8 +18,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /app/backend/data/threads \
-             /app/embedding_cache \
-             /app/model_cache
+             /app/embedding_cache
+
+# Copy pre-downloaded model cache directly into image
+COPY model_cache/ ./model_cache/
 
 COPY chapters.json ./
 COPY backend/ ./backend/

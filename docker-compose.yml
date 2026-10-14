@@ -16,6 +16,8 @@ services:
       - PORT=8000
       - PYTHONUNBUFFERED=1
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
     env_file:
       - path: .env
         required: false
@@ -26,10 +28,11 @@ services:
       - ./chapters.json:/app/chapters.json:ro
       - ./embedding_cache:/app/embedding_cache:ro
       - ./ocr_cache:/app/ocr_cache:ro
-      # HuggingFace model cache (persists downloaded model weights across runs)
-      - ./model_cache:/app/model_cache
+      # Model is baked directly into the Docker image. 
+      # (Do NOT mount an empty host folder on AWS or it will overwrite the baked model)
+      # - ./model_cache:/app/model_cache
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -50,7 +53,7 @@ services:
     container_name: tanvirsheikh_study_rag_web_V3
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "80:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000

@@ -19,16 +19,31 @@ _model = None
 
 
 def get_model():
-    """Load multilingual-e5-large once, from model_cache, on the best device."""
+    """Load multilingual-e5-large once, from model_cache, strictly using local cache if present."""
     global _model
     with _model_lock:
         if _model is None:
+            import os
             from sentence_transformers import SentenceTransformer
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            _model = SentenceTransformer(
-                EMBEDDING_MODEL, cache_folder=str(MODEL_CACHE), device=device
-            )
+            model_folder = MODEL_CACHE / f"models--{EMBEDDING_MODEL.replace('/', '--')}"
+            
+            # If the model cache folder exists or offline mode is requested, do not contact HuggingFace
+            use_local_only = model_folder.exists() or os.getenv("HF_HUB_OFFLINE") == "1"
+
+            try:
+                _model = SentenceTransformer(
+                    EMBEDDING_MODEL,
+                    cache_folder=str(MODEL_CACHE),
+                    device=device,
+                    local_files_only=use_local_only,
+                )
+            except Exception:
+                # Fallback if local_files_only fails or files need downloading
+                _model = SentenceTransformer(
+                    EMBEDDING_MODEL, cache_folder=str(MODEL_CACHE), device=device
+                )
         return _model
 
 

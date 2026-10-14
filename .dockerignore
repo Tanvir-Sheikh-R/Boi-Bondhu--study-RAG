@@ -25,7 +25,6 @@ web/
 # Heavy raw PDFs (embeddings and chapters.json are already extracted)
 pdf/
 
-model_cache/
 ocr_cache/
 pipeline/
 .env

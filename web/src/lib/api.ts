@@ -56,9 +56,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     });
   } catch (error) {
     throw new ApiError(
-      `সার্ভারে সংযোগ করা যায়নি (${API_BASE})। ব্যাকএন্ড চালু আছে কি? ${
-        error instanceof Error ? error.message : ""
-      }`.trim(),
+      `সার্ভারে সংযোগ করা যায়নি (${API_BASE})। ব্যাকএন্ড চালু আছে কি? ${error instanceof Error ? error.message : ""
+        }`.trim(),
       0,
     );
   }
