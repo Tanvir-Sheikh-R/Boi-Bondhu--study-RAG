@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Pass NEXT_PUBLIC_API_BASE at build time (default: http://localhost:8000)
-ARG NEXT_PUBLIC_API_BASE=http://localhost:8000
+ARG NEXT_PUBLIC_API_BASE=http://13.63.69.46:8000
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 
 ENV NEXT_TELEMETRY_DISABLED=1

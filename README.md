@@ -14,10 +14,26 @@ model_cache/). The backend never rewrites those artifacts.
 
 Run both API and Web UI with a single command:
 
+    # Set PUBLIC_HOST in .env to your EC2 public IP or DNS name first.
     docker compose up --build
 
-- **Web UI:** http://localhost:3000
+- **Web UI:** http://localhost (port 80)
 - **API Backend:** http://localhost:8000 (Health check: http://localhost:8000/api/health)
+
+### EC2 network requirements
+
+Set `PUBLIC_HOST=13.63.69.46` in `.env` (or replace it with your Elastic IP / DNS
+name), then build the web image. `NEXT_PUBLIC_API_BASE` is compiled into the browser
+bundle, so changing the public host requires `docker compose up --build -d`.
+
+Allow these inbound security-group rules:
+
+- TCP 80 from the internet for the web UI.
+- TCP 8000 from the internet for the browser-to-API requests.
+
+The API binds to `0.0.0.0:8000` inside Docker and is published as host port 8000;
+the frontend is published as host port 80. CORS accepts `http://<PUBLIC_HOST>`,
+which is the origin browsers use for port 80.
 
 Or build and run individually:
 

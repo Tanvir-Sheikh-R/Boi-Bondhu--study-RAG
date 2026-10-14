@@ -15,7 +15,9 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - PYTHONUNBUFFERED=1
-      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      # Browsers omit the default HTTP port from Origin, so port 80 must be
+      # listed as http://<host>, not only http://<host>:80.
+      - CORS_ORIGINS=http://${PUBLIC_HOST:-13.63.69.46},http://${PUBLIC_HOST:-13.63.69.46}:80,http://localhost:3000,http://127.0.0.1:3000
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
     env_file:
@@ -49,7 +51,7 @@ services:
       context: ./web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE: http://localhost:8000
+        NEXT_PUBLIC_API_BASE: http://${PUBLIC_HOST:-13.63.69.46}:8000
     container_name: tanvirsheikh_study_rag_web_V3
     restart: unless-stopped
     ports:
@@ -58,7 +60,8 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+      # NEXT_PUBLIC_* values are embedded in the browser bundle during build.
+      - NEXT_PUBLIC_API_BASE=http://${PUBLIC_HOST:-13.63.69.46}:8000
     depends_on:
       backend:
         condition: service_healthy

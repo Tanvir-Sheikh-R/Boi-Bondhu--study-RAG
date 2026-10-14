@@ -18,7 +18,7 @@ COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --upgrade pip && \
-    pip install --default-timeout=1000 -r requirements.txt
+    pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
 # Create runtime directories for data persistence and embedding caches
 RUN mkdir -p /app/backend/data/threads \
@@ -26,6 +26,8 @@ RUN mkdir -p /app/backend/data/threads \
 
 # Copy pre-downloaded model cache directly into image (avoids downloading on AWS)
 COPY model_cache/ ./model_cache/
+
+COPY embedding_cache/ ./embedding_cache/
 
 # Copy application artifacts and code
 COPY chapters.json ./
@@ -37,7 +39,7 @@ EXPOSE 8000
 
 # Health check using Python's built-in urllib (no external curl package needed)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')" || exit 1
 
 # Start the API server
 CMD ["python", "-m", "backend.run"]
