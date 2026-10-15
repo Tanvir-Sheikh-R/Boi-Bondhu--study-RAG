@@ -22,7 +22,7 @@ Run both API and Web UI with a single command:
 
 ### EC2 network requirements
 
-Set `PUBLIC_HOST=13.63.69.46` in `.env` (or replace it with your Elastic IP / DNS
+Set `PUBLIC_HOST=16.192.163.122` in `.env` (or replace it with your Elastic IP / DNS
 name), then build the web image. `NEXT_PUBLIC_API_BASE` is compiled into the browser
 bundle, so changing the public host requires `docker compose up --build -d`.
 
@@ -49,7 +49,7 @@ Or build and run individually:
 
 Two processes:
 
-    # 1. API (first start loads multilingual-e5-large onto the GPU, ~20s)
+    # 1. API (first start loads multilingual-e5-base onto the GPU)
     python -m backend.run                 # http://127.0.0.1:8000
 
     # 2. Web UI
@@ -94,3 +94,4 @@ docker run -p 8000:8000 --env-file .env tanvirsheikh/study-rag-backend
 docker build -t tanvirsheikh/study-rag-web ./web
 docker push tanvirsheikh/study-rag-web
 docker run -p 3000:3000 tanvirsheikh/study-rag-web
+

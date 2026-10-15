@@ -18,10 +18,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Pass NEXT_PUBLIC_API_BASE at build time (default: http://localhost:8000)
-ARG NEXT_PUBLIC_API_BASE=http://13.63.69.46:8000
-ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
-
+# The API host is resolved from the browser's own location at runtime
+# (web/src/lib/api.ts), so no API URL is baked in here. Pass
+# --build-arg NEXT_PUBLIC_API_BASE=... only for split-host deployments.
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

@@ -14,9 +14,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG NEXT_PUBLIC_API_BASE=http://13.63.69.46:8000
-ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
-
+# The API host is resolved from the browser's own location at runtime
+# (web/src/lib/api.ts), so no API URL is baked in here.
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

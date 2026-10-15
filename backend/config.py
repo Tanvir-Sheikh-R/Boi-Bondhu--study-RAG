@@ -22,7 +22,7 @@ MODEL_CACHE = ROOT / "model_cache"
 DATA_DIR = ROOT / "backend" / "data"
 THREADS_DIR = DATA_DIR / "threads"
 
-EMBEDDING_MODEL = "intfloat/multilingual-e5-large"
+EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
 E5_QUERY_PREFIX = "query: "
 E5_PASSAGE_PREFIX = "passage: "
 

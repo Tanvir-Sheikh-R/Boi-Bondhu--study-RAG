@@ -1,4 +1,5 @@
 import pytesseract
+from pathlib import Path
 from pdf2image import convert_from_path
 from PIL import ImageOps
 import os
@@ -42,10 +43,13 @@ llm_deep = ChatDeepSeek(
 
 
 
+ROOT = Path(__file__).resolve().parent
+MODEL_CACHE = ROOT / "model_cache"
+
 embeddings = HuggingFaceEmbeddings(
-    model_name="intfloat/multilingual-e5-large",
-    cache_folder="./model_cache" 
-    )
+    model_name="intfloat/multilingual-e5-base",
+    cache_folder=str(MODEL_CACHE),
+)
 
 
 

@@ -12,6 +12,7 @@ from functools import lru_cache
 
 import torch
 
+# pyrefly: ignore [missing-import]
 from backend.config import E5_PASSAGE_PREFIX, E5_QUERY_PREFIX, EMBEDDING_MODEL, MODEL_CACHE
 
 _model_lock = threading.Lock()
@@ -19,7 +20,7 @@ _model = None
 
 
 def get_model():
-    """Load multilingual-e5-large once, from model_cache, strictly using local cache if present."""
+    """Load multilingual-e5-base once, from model_cache, strictly using local cache if present."""
     global _model
     with _model_lock:
         if _model is None:

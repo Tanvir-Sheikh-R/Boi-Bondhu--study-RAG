@@ -7,7 +7,29 @@ import type {
   TreeResponse,
 } from "@/lib/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+/** Port the FastAPI backend is published on (docker-compose maps 8000:8000). */
+const API_PORT = 8000;
+
+/**
+ * Resolve the API base URL when a request is made, rather than baking it in.
+ *
+ * `NEXT_PUBLIC_*` values are inlined by `next build`, so a build-time host keeps
+ * pointing at whatever address was configured then — a retired IP stays frozen in the
+ * shipped bundle until the image is rebuilt. The web UI and the API are published from
+ * the same host, so deriving the host from the page itself stays correct after an IP
+ * change and in local development alike. An explicit NEXT_PUBLIC_API_BASE is still
+ * honoured, which keeps split (separate-host) deployments working.
+ */
+function apiBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE;
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+  if (typeof window === "undefined") {
+    return `http://127.0.0.1:${API_PORT}`;
+  }
+  return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -47,16 +69,17 @@ async function readError(response: Response): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const base = apiBase();
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(`${base}${path}`, {
       ...init,
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
       cache: "no-store",
     });
   } catch (error) {
     throw new ApiError(
-      `সার্ভারে সংযোগ করা যায়নি (${API_BASE})। ব্যাকএন্ড চালু আছে কি? ${error instanceof Error ? error.message : ""
+      `সার্ভারে সংযোগ করা যায়নি (${base})। ব্যাকএন্ড চালু আছে কি? ${error instanceof Error ? error.message : ""
         }`.trim(),
       0,
     );
@@ -102,7 +125,7 @@ export async function* streamChat(
 ): AsyncGenerator<StreamEvent> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}/api/threads/${threadId}/chat`, {
+    response = await fetch(`${apiBase()}/api/threads/${threadId}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, context }),

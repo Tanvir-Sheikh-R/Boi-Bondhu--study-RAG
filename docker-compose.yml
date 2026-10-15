@@ -1,6 +1,6 @@
 services:
   # ========================================================
-  # 1. API Backend (FastAPI + RAG + multilingual-e5-large)
+  # 1. API Backend (FastAPI + RAG + multilingual-e5-base)
   # ========================================================
   backend:
     image: tanvirsheikh/study-rag-backend:latest
@@ -15,9 +15,11 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - PYTHONUNBUFFERED=1
-      # Browsers omit the default HTTP port from Origin, so port 80 must be
-      # listed as http://<host>, not only http://<host>:80.
-      - CORS_ORIGINS=http://${PUBLIC_HOST:-13.63.69.46},http://${PUBLIC_HOST:-13.63.69.46}:80,http://localhost:3000,http://127.0.0.1:3000
+      # Browsers omit the default HTTP port from Origin, so a UI published on port 80 is
+      # reached as http://<host> — the bare host must be listed, not just http://<host>:80.
+      # Both the domain and the raw IP are allowed, so the app works whichever way it is
+      # opened. A blocked origin surfaces in the browser as a bare "Failed to fetch".
+      - CORS_ORIGINS=http://${PUBLIC_HOST:-16.192.163.122},http://${PUBLIC_HOST:-16.192.163.122}:80,http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org},http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org}:80,http://localhost,http://127.0.0.1,http://localhost:3000,http://127.0.0.1:3000
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
     env_file:
@@ -50,8 +52,6 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_BASE: http://${PUBLIC_HOST:-13.63.69.46}:8000
     container_name: tanvirsheikh_study_rag_web_V3
     restart: unless-stopped
     ports:
@@ -60,8 +60,9 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # NEXT_PUBLIC_* values are embedded in the browser bundle during build.
-      - NEXT_PUBLIC_API_BASE=http://${PUBLIC_HOST:-13.63.69.46}:8000
+      # No NEXT_PUBLIC_API_BASE here on purpose: the browser bundle derives the API
+      # host from its own location at runtime (see web/src/lib/api.ts), so changing
+      # PUBLIC_HOST no longer requires rebuilding this image.
     depends_on:
       backend:
         condition: service_healthy
