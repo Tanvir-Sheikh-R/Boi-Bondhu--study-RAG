@@ -2,7 +2,7 @@
   "version": 2,
   "sessionId": "session-ab9582c1-b4c0-45ef-bb6a-f6c8cd26ba0e",
   "cwd": "D:\\AI-ML\\AI Projects\\Study RAG",
-  "updatedAt": 1792043009575,
+  "updatedAt": 1792051428986,
   "checkpoints": [
     {
       "turn": 1,
@@ -7826,7 +7826,27 @@
         "embedding_cache/class_8/sahitto_konika/বঙ্গভূমির প্রতি/index.faiss",
         "embedding_cache/class_8/sahitto_konika/বঙ্গভূমির প্রতি/index.pkl"
       ],
-      "truncated": true
+      "truncated": true,
+      "after": {
+        "commit": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+        "time": 1792049667158
+      }
+    },
+    {
+      "turn": 27,
+      "commit": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+      "parent": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+      "time": 1792051210262,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 28,
+      "commit": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+      "parent": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+      "time": 1792051426356,
+      "untracked": [],
+      "truncated": false
     }
   ],
   "rolls": [],
