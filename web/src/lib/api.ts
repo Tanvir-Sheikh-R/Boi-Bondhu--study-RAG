@@ -31,6 +31,37 @@ function apiBase(): string {
   return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
 }
 
+/**
+ * Stable per-browser identifier, persisted in localStorage and sent as `X-Client-Id`.
+ * The API stores it on each thread and only ever returns threads owned by it, so two
+ * browsers on the same server never see each other's history.
+ */
+const CLIENT_ID_KEY = "boibondhu.client_id";
+let cachedClientId: string | null = null;
+
+function clientId(): string {
+  if (cachedClientId) {
+    return cachedClientId;
+  }
+  if (typeof window === "undefined") {
+    return (cachedClientId = "server");
+  }
+  try {
+    const stored = window.localStorage.getItem(CLIENT_ID_KEY);
+    if (stored) {
+      return (cachedClientId = stored);
+    }
+    const created =
+      window.crypto?.randomUUID?.() ??
+      `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(CLIENT_ID_KEY, created);
+    return (cachedClientId = created);
+  } catch {
+    // Storage can be unavailable (private mode); a per-session id still separates tabs.
+    return (cachedClientId = `session-${Date.now().toString(36)}`);
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -74,7 +105,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${base}${path}`, {
       ...init,
-      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Client-Id": clientId(),
+        ...(init?.headers ?? {}),
+      },
       cache: "no-store",
     });
   } catch (error) {
@@ -108,6 +143,11 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ context }),
     }),
+  renameThread: (threadId: string, title: string) =>
+    request<ThreadDetail>(`/api/threads/${threadId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
   deleteThread: (threadId: string) =>
     request<void>(`/api/threads/${threadId}`, { method: "DELETE" }),
 };
@@ -127,7 +167,7 @@ export async function* streamChat(
   try {
     response = await fetch(`${apiBase()}/api/threads/${threadId}/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client-Id": clientId() },
       body: JSON.stringify({ message, context }),
       signal,
     });

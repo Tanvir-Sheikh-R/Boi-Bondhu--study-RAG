@@ -4,6 +4,7 @@ Reads the artifacts produced by pipeline/pdf_to_document_cleanV2.ipynb
 (chapters.json, ocr_cache/, embedding_cache/, model_cache/) and never writes to them.
 """
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -22,6 +23,9 @@ MODEL_CACHE = ROOT / "model_cache"
 DATA_DIR = ROOT / "backend" / "data"
 THREADS_DIR = DATA_DIR / "threads"
 
+# Chat history is kept per browser for this many days, then purged automatically.
+THREAD_RETENTION_DAYS = 3
+
 EMBEDDING_MODEL = "intfloat/multilingual-e5-base"
 E5_QUERY_PREFIX = "query: "
 E5_PASSAGE_PREFIX = "passage: "
@@ -38,11 +42,17 @@ LLM_MAX_TOKENS = 2048
 
 TOC_KEYWORDS = ("সূচিপত্র", "সুচিপত্র", "বিষয়সূচি", "CONTENTS", "contents")
 
-import os
-_env_cors = os.getenv("CORS_ORIGINS")
-CORS_ORIGINS = (
-    tuple(origin.strip() for origin in _env_cors.split(",") if origin.strip())
-    if _env_cors
-    else ("http://localhost:3000", "http://127.0.0.1:3000")
+# CORS: whatever the deployment configures, plus the local development origins.
+# Merging (instead of replacing) means a production .env listing only the public
+# host cannot lock a developer out of their own machine — a blocked origin shows up
+# in the browser as a bare "Failed to fetch" and as a 400 on the preflight.
+_LOCAL_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost",
+    "http://127.0.0.1",
 )
+_env_cors = os.getenv("CORS_ORIGINS", "")
+_configured_origins = tuple(origin.strip() for origin in _env_cors.split(",") if origin.strip())
+CORS_ORIGINS = tuple(dict.fromkeys((*_configured_origins, *_LOCAL_ORIGINS)))
 

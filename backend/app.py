@@ -10,12 +10,12 @@ import re
 from contextlib import asynccontextmanager
 from typing import Any, Iterator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from backend import store
-from backend.config import CORS_ORIGINS, LLM_MODEL
+from backend.config import CORS_ORIGINS, LLM_MODEL, THREAD_RETENTION_DAYS
 from backend.rag import (
     build_tree,
     cached_book_paths,
@@ -33,6 +33,7 @@ from backend.schemas import (
     ThreadCreate,
     ThreadDetail,
     ThreadGroup,
+    ThreadRename,
     ThreadSummary,
 )
 
@@ -86,8 +87,30 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def report_cors_rejections(request: Request, call_next):
+    """Name the offending origin when CORSMiddleware answers a preflight with 400.
+
+    The browser reports a blocked preflight as a bare network error, so the server
+    log is the only place the real origin is visible.
+    """
+    response = await call_next(request)
+    if request.method == "OPTIONS" and response.status_code == 400:
+        logger.warning(
+            "CORS preflight rejected: Origin=%r is not in %s",
+            request.headers.get("origin"),
+            list(CORS_ORIGINS),
+        )
+    return response
+
+
 def _context_dict(context: Any) -> dict[str, Any]:
     return context.model_dump()
+
+
+def client_id_of(x_client_id: str | None = Header(default=None, alias="X-Client-Id")) -> str:
+    """Per-browser identity from the web client, so browsers never see each other's threads."""
+    return (x_client_id or "anonymous")[:64]
 
 
 def _to_thread_summary(document: dict[str, Any]) -> ThreadSummary:
@@ -191,6 +214,7 @@ def health() -> HealthOut:
         indexed_books=len(cached_book_paths()),
         named_books=len(all_book_paths()),
         llm_model=LLM_MODEL,
+        thread_retention_days=THREAD_RETENTION_DAYS,
     )
 
 
@@ -223,28 +247,33 @@ def tree() -> dict[str, Any]:
 
 
 @app.get("/api/threads", response_model=list[ThreadGroup])
-def list_threads() -> list[ThreadGroup]:
-    return [ThreadGroup(**group) for group in store.grouped()]
+def list_threads(client_id: str = Depends(client_id_of)) -> list[ThreadGroup]:
+    return [ThreadGroup(**group) for group in store.grouped(client_id)]
 
 
 @app.post("/api/threads", response_model=ThreadDetail)
-def create_thread(payload: ThreadCreate) -> ThreadDetail:
-    document = store.create(_context_dict(payload.context), payload.context.title)
+def create_thread(payload: ThreadCreate, client_id: str = Depends(client_id_of)) -> ThreadDetail:
+    document = store.create(_context_dict(payload.context), payload.context.title, client_id)
     return _to_thread_detail(document)
 
 
 @app.get("/api/threads/{thread_id}", response_model=ThreadDetail)
-def get_thread(thread_id: str) -> ThreadDetail:
+def get_thread(thread_id: str, client_id: str = Depends(client_id_of)) -> ThreadDetail:
     try:
-        document = store.get(thread_id)
+        document = store.get(thread_id, client_id)
     except store.ThreadNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return _to_thread_detail(document)
 
 
 @app.put("/api/threads/{thread_id}/context", response_model=ThreadDetail)
-def update_thread_context(thread_id: str, payload: ThreadContextUpdate) -> ThreadDetail:
+def update_thread_context(
+    thread_id: str,
+    payload: ThreadContextUpdate,
+    client_id: str = Depends(client_id_of),
+) -> ThreadDetail:
     try:
+        store.get(thread_id, client_id)
         document = store.update_context(
             thread_id, _context_dict(payload.context), payload.context.title
         )
@@ -253,18 +282,36 @@ def update_thread_context(thread_id: str, payload: ThreadContextUpdate) -> Threa
     return _to_thread_detail(document)
 
 
-@app.delete("/api/threads/{thread_id}", status_code=204)
-def delete_thread(thread_id: str) -> None:
+@app.patch("/api/threads/{thread_id}", response_model=ThreadDetail)
+def rename_thread(
+    thread_id: str,
+    payload: ThreadRename,
+    client_id: str = Depends(client_id_of),
+) -> ThreadDetail:
     try:
+        document = store.rename(thread_id, payload.title, client_id)
+    except store.ThreadNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _to_thread_detail(document)
+
+
+@app.delete("/api/threads/{thread_id}", status_code=204)
+def delete_thread(thread_id: str, client_id: str = Depends(client_id_of)) -> None:
+    try:
+        store.get(thread_id, client_id)
         store.delete(thread_id)
     except store.ThreadNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/threads/{thread_id}/chat")
-def chat(thread_id: str, payload: ChatStart) -> StreamingResponse:
+def chat(
+    thread_id: str,
+    payload: ChatStart,
+    client_id: str = Depends(client_id_of),
+) -> StreamingResponse:
     try:
-        document = store.get(thread_id)
+        document = store.get(thread_id, client_id)
     except store.ThreadNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

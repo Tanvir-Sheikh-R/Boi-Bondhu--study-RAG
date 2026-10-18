@@ -91,6 +91,7 @@ export type Health = {
   indexed_books: number;
   named_books: number;
   llm_model: string;
+  thread_retention_days: number;
 };
 
 export type StreamStatus = "searching" | "answering";

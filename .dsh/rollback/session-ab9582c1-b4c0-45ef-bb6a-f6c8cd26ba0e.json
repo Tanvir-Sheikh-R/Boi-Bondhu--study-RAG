@@ -2,7 +2,7 @@
   "version": 2,
   "sessionId": "session-ab9582c1-b4c0-45ef-bb6a-f6c8cd26ba0e",
   "cwd": "D:\\AI-ML\\AI Projects\\Study RAG",
-  "updatedAt": 1792051428986,
+  "updatedAt": 1792336798635,
   "checkpoints": [
     {
       "turn": 1,
@@ -7847,6 +7847,118 @@
       "time": 1792051426356,
       "untracked": [],
       "truncated": false
+    },
+    {
+      "turn": 29,
+      "commit": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "parent": "c014fde39ad2fdf8961673db811fe7afda775ce6",
+      "time": 1792051895964,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 30,
+      "commit": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "parent": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "time": 1792051971287,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 31,
+      "commit": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "parent": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "time": 1792052305750,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 36,
+      "commit": "4e8ce705497b6b4b825af6fb92733a9344d4def9",
+      "parent": "3b71b021ebe493a62017b814bf337917c32a3dfd",
+      "time": 1792334658656,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "d44d24954bd479c5af6cfdb35312de4009c496d6",
+        "time": 1792334676814
+      }
+    },
+    {
+      "turn": 37,
+      "commit": "d44d24954bd479c5af6cfdb35312de4009c496d6",
+      "parent": "d44d24954bd479c5af6cfdb35312de4009c496d6",
+      "time": 1792334919765,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "1ab8c540a3dcb4e28fae06faa2ed31e9ab4ec542",
+        "time": 1792335101019
+      }
+    },
+    {
+      "turn": 38,
+      "commit": "1ab8c540a3dcb4e28fae06faa2ed31e9ab4ec542",
+      "parent": "1ab8c540a3dcb4e28fae06faa2ed31e9ab4ec542",
+      "time": 1792335678217,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "5b3f38945956f9b9435b49a1e5334efb684d0c4e",
+        "time": 1792335763247
+      }
+    },
+    {
+      "turn": 39,
+      "commit": "5b3f38945956f9b9435b49a1e5334efb684d0c4e",
+      "parent": "5b3f38945956f9b9435b49a1e5334efb684d0c4e",
+      "time": 1792336004209,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+        "time": 1792336090339
+      }
+    },
+    {
+      "turn": 40,
+      "commit": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "parent": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "time": 1792336288927,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 41,
+      "commit": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "parent": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "time": 1792336422649,
+      "untracked": [],
+      "truncated": false
+    },
+    {
+      "turn": 42,
+      "commit": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "parent": "7b9df4386d321ea7d10e69161a7c4f800b4b1783",
+      "time": 1792336595306,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "e62150c8ffb73528f8f2e3fb43128ac2a97c7463",
+        "time": 1792336641737
+      }
+    },
+    {
+      "turn": 43,
+      "commit": "e62150c8ffb73528f8f2e3fb43128ac2a97c7463",
+      "parent": "e62150c8ffb73528f8f2e3fb43128ac2a97c7463",
+      "time": 1792336742287,
+      "untracked": [],
+      "truncated": false,
+      "after": {
+        "commit": "4830cfb5db4e9a1a633a546582ec8effe121276d",
+        "time": 1792336795707
+      }
     }
   ],
   "rolls": [],

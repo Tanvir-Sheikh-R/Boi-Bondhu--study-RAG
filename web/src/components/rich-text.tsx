@@ -15,7 +15,7 @@ export function RichText({ text }: { text: string }) {
             <h2 className="pt-2 text-base font-bold text-ink first:pt-0">{children}</h2>
           ),
           h3: ({ children }) => (
-            <h3 className="pt-1.5 text-[15px] font-semibold text-ink first:pt-0">{children}</h3>
+            <h3 className="pt-1.5 text-[16px] font-semibold text-ink first:pt-0">{children}</h3>
           ),
           h4: ({ children }) => (
             <h4 className="pt-1 text-sm font-semibold text-ink first:pt-0">{children}</h4>
@@ -44,7 +44,7 @@ export function RichText({ text }: { text: string }) {
             <code className="rounded bg-neutral-100 px-1 py-0.5 text-[0.9em]">{children}</code>
           ),
           pre: ({ children }) => (
-            <pre className="my-2 overflow-x-auto rounded-2xl bg-neutral-100 p-3 text-[13px] leading-relaxed">
+            <pre className="my-2 overflow-x-auto rounded-2xl bg-neutral-100 p-3 text-[14px] leading-relaxed">
               {children}
             </pre>
           ),
@@ -55,7 +55,7 @@ export function RichText({ text }: { text: string }) {
           ),
           table: ({ children }) => (
             <div className="my-2 overflow-x-auto">
-              <table className="w-full border-collapse text-[13px]">{children}</table>
+              <table className="w-full border-collapse text-[14px]">{children}</table>
             </div>
           ),
           th: ({ children }) => (

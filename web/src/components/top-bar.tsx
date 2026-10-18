@@ -42,7 +42,7 @@ export function TopBar({
           <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white text-accent">
             <BookOpen className="size-3.5" />
           </span>
-          <span className="truncate text-[13px] font-medium text-ink">{text}</span>
+          <span className="truncate text-[14px] font-medium text-ink">{text}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 text-muted" />
         </button>
       </div>
@@ -51,7 +51,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onNewChat}
-          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-white transition hover:bg-neutral-800"
+          className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[14px] font-medium text-white transition hover:bg-neutral-800"
         >
           <Plus className="size-3.5" />
           <span className="hidden sm:inline">নতুন চ্যাট</span>

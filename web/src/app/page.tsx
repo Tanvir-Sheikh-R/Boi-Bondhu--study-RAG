@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { SelectionModal, type PickerResult } from "@/components/selection-modal";
-import { Sidebar, type SidebarSection } from "@/components/sidebar";
+import { Sidebar } from "@/components/sidebar";
 import { TopBar } from "@/components/top-bar";
 import { ChatComposer } from "@/components/chat-composer";
 import { EmptyState } from "@/components/empty-state";
@@ -65,7 +66,10 @@ export default function Page() {
   const [statusLabel, setStatusLabel] = useState<string | null>(null);
 
   const [modal, setModal] = useState<ModalState | null>(null);
-  const [section, setSection] = useState<SidebarSection>("home");
+  const [pendingDelete, setPendingDelete] = useState<{
+    threadId: string;
+    title: string;
+  } | null>(null);
   const [search, setSearch] = useState("");
   const [navOpen, setNavOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -75,6 +79,7 @@ export default function Page() {
   const abortRef = useRef<AbortController | null>(null);
   const toastIdRef = useRef(0);
   const pickerShownRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const pushToast = useCallback((tone: Toast["tone"], message: string) => {
     const id = ++toastIdRef.current;
@@ -139,6 +144,14 @@ export default function Page() {
     setModal({ mode: "new", initial: null });
   }, [activeThreadId, modal, ready]);
 
+  // Keep the newest content in view: new messages and every streamed chunk.
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, streamingText, statusLabel]);
+
   const startThread = useCallback(
     async (nextContext: ChapterContext) => {
       const created = await api.createThread(nextContext);
@@ -188,13 +201,86 @@ export default function Page() {
     [pushToast, streaming],
   );
 
+  const renameThread = useCallback(
+    async (threadId: string, title: string) => {
+      if (streaming) {
+        pushToast("info", "উত্তর আসছে — শেষ হলে নাম বদলাতে পারবে।");
+        return;
+      }
+      try {
+        await api.renameThread(threadId, title);
+        await refreshThreads();
+      } catch (error) {
+        pushToast("error", error instanceof Error ? error.message : "নাম বদলানো যায়নি।");
+      }
+    },
+    [pushToast, refreshThreads, streaming],
+  );
+
+  // Deleting asks in-app rather than with window.confirm(): a suppressed native
+  // dialog silently answers "no" (or "yes"), which is worse than no warning at all.
+  const requestDeleteThread = useCallback(
+    (threadId: string) => {
+      if (streaming) {
+        pushToast("info", "উত্তর আসছে — শেষ হলে চ্যাট মুছতে পারবে।");
+        return;
+      }
+      const found = groups
+        .flatMap((group) => group.threads)
+        .find((thread) => thread.thread_id === threadId);
+      setPendingDelete({ threadId, title: found?.title ?? "এই চ্যাট" });
+    },
+    [groups, pushToast, streaming],
+  );
+
+  const confirmDeleteThread = useCallback(async () => {
+    const target = pendingDelete;
+    if (!target) {
+      return;
+    }
+    setPendingDelete(null);
+    const wasActive = target.threadId === activeThreadId;
+    try {
+      await api.deleteThread(target.threadId);
+      if (wasActive) {
+        // Back to the greeting in the same chapter. The thread is created again only
+        // when the next question is sent, so no empty look-alike thread reappears.
+        setActiveThreadId(null);
+        setMessages([]);
+        setStreamingText("");
+        setStatusLabel(null);
+      }
+      await refreshThreads();
+    } catch (error) {
+      pushToast("error", error instanceof Error ? error.message : "চ্যাট মোছা যায়নি।");
+    }
+  }, [activeThreadId, pendingDelete, pushToast, refreshThreads]);
+
   const send = useCallback(async () => {
     const question = input.trim();
-    if (!question || streaming || !activeThreadId || !context) {
-      if (!activeThreadId || !context) {
-        pushToast("error", "আগে শ্রেণি, বিষয় ও অধ্যায় বেছে নাও।");
-      }
+    if (!question || streaming) {
       return;
+    }
+    if (!context) {
+      pushToast("error", "আগে শ্রেণি, বিষয় ও অধ্যায় বেছে নাও।");
+      return;
+    }
+
+    // After deleting the current chat (or before the first message) there is no thread
+    // yet: create one now, with this question as its first turn, rather than eagerly
+    // creating empty threads that clutter the sidebar.
+    let threadId: string;
+    if (activeThreadId) {
+      threadId = activeThreadId;
+    } else {
+      try {
+        const created = await api.createThread(context);
+        threadId = created.thread_id;
+        setActiveThreadId(threadId);
+      } catch (error) {
+        pushToast("error", error instanceof Error ? error.message : "নতুন চ্যাট শুরু করা যায়নি।");
+        return;
+      }
     }
 
     setInput("");
@@ -209,7 +295,7 @@ export default function Page() {
     let failed: string | null = null;
 
     try {
-      for await (const event of streamChat(activeThreadId, question, context, controller.signal)) {
+      for await (const event of streamChat(threadId, question, context, controller.signal)) {
         switch (event.type) {
           case "status":
             setStatusLabel(event.message);
@@ -272,6 +358,23 @@ export default function Page() {
     [context, pushToast, streaming],
   );
 
+  // Home: back to the greeting for the current chapter. The next question starts a
+  // fresh thread, so no empty thread is created just by landing here.
+  const goHome = useCallback(() => {
+    if (streaming) {
+      pushToast("info", "উত্তর আসছে — শেষ হলে হোমে যেতে পারবে।");
+      return;
+    }
+    if (!context) {
+      openPicker("new");
+      return;
+    }
+    setActiveThreadId(null);
+    setMessages([]);
+    setStreamingText("");
+    setStatusLabel(null);
+  }, [context, openPicker, pushToast, streaming]);
+
   if (bootError && !ready) {
     return (
       <main className="grid min-h-dvh place-items-center p-6">
@@ -330,7 +433,7 @@ export default function Page() {
       <div
         className={`${navOpen ? "flex" : "hidden"} absolute inset-y-0 left-0 z-30 h-full lg:static lg:flex`}
       >
-        <div className="h-full overflow-hidden rounded-3xl bg-surface app-shadow lg:rounded-none lg:bg-transparent lg:shadow-none">
+        <div className="h-full overflow-hidden rounded-3xl bg-surface app-shadow">
           <Sidebar
             userName={userName}
             groups={groups}
@@ -341,7 +444,9 @@ export default function Page() {
             counts={tree.counts}
             onSearchChange={setSearch}
             onSelectThread={(threadId) => void loadThread(threadId)}
-            onSectionChange={setSection}
+            onHome={goHome}
+            onRenameThread={(threadId, title) => void renameThread(threadId, title)}
+            onDeleteThread={requestDeleteThread}
             onRenameUser={renameUser}
           />
         </div>
@@ -365,58 +470,21 @@ export default function Page() {
           onToggleNav={() => setNavOpen((open) => !open)}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {section === "saved" ? (
-            <p className="mx-auto w-full max-w-3xl px-4 py-6 text-xs leading-relaxed text-muted">
-              সংরক্ষিত অধ্যায় — এই বৈশিষ্ট্যটি এখনো যোগ করা হয়নি।
-            </p>
-          ) : null}
-
-          {section === "history" ? (
-            <div className="mx-auto w-full max-w-3xl px-4 py-6">
-              <h2 className="text-sm font-semibold text-ink">সব চ্যাট</h2>
-              <ul className="mt-3 space-y-1.5">
-                {groups.flatMap((group) =>
-                  group.threads.map((thread) => (
-                    <li key={thread.thread_id}>
-                      <button
-                        type="button"
-                        onClick={() => void loadThread(thread.thread_id)}
-                        className="w-full rounded-2xl px-3 py-2.5 text-left transition hover:bg-neutral-100"
-                      >
-                        <span className="block truncate text-[13px] font-medium text-ink">
-                          {thread.title}
-                        </span>
-                        <span className="block truncate pt-0.5 text-[11px] text-muted">
-                          {group.label} · {thread.message_count}টি বার্তা
-                        </span>
-                      </button>
-                    </li>
-                  )),
-                )}
-                {groups.length === 0 ? (
-                  <li className="text-xs text-muted">এখনো কোনো চ্যাট নেই।</li>
-                ) : null}
-              </ul>
-            </div>
-          ) : null}
-
-          {section === "home" ? (
-            messages.length === 0 ? (
-              <EmptyState userName={userName} contextLabel={contextLabel} hint={bookHint}>
-                {composer}
-              </EmptyState>
-            ) : (
-              <MessageList
-                messages={messages}
-                streamingText={streamingText}
-                statusLabel={statusLabel}
-              />
-            )
-          ) : null}
+        <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {messages.length === 0 ? (
+            <EmptyState userName={userName} contextLabel={contextLabel} hint={bookHint}>
+              {composer}
+            </EmptyState>
+          ) : (
+            <MessageList
+              messages={messages}
+              streamingText={streamingText}
+              statusLabel={statusLabel}
+            />
+          )}
         </div>
 
-        {section === "home" && messages.length > 0 ? (
+        {messages.length > 0 ? (
           <div className="mx-auto w-full max-w-3xl px-4 pb-4">{composer}</div>
         ) : null}
       </section>
@@ -426,12 +494,68 @@ export default function Page() {
           classes={tree.classes}
           initialContext={modal.initial}
           mode={modal.mode}
-          onCancel={modal.mode === "switch" && activeThreadId ? () => setModal(null) : null}
+          onCancel={() => setModal(null)}
           onSubmit={handlePickerSubmit}
         />
       ) : null}
 
+      {pendingDelete ? (
+        <div className="bb-fade-in fixed inset-0 z-50 grid place-items-center bg-neutral-900/30 p-4 backdrop-blur-sm">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="চ্যাট মুছে ফেলার নিশ্চিতকরণ"
+            className="bb-slide-up w-full max-w-sm rounded-3xl bg-surface p-6 card-shadow"
+          >
+            <div className="flex items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
+                <Trash2 className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-ink">চ্যাটটি মুছে ফেলবেন?</h2>
+                <p className="truncate pt-1 text-[13px] text-neutral-600">{pendingDelete.title}</p>
+                <p className="pt-2 text-[12px] leading-relaxed text-muted">
+                  এটি স্থায়ীভাবে মুছে যাবে এবং ফিরিয়ে আনা যাবে না।
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="rounded-full px-4 py-2 text-[13px] font-medium text-neutral-600 transition hover:bg-neutral-100"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteThread()}
+                className="rounded-full bg-rose-600 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-rose-700"
+              >
+                মুছে ফেলো
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Contact the developer. Pinned to the window's bottom-right corner; kept
+          small and flush to the edge so it clears the composer's send button.
+          Inline SVG because lucide no longer ships brand icons. */}
+      <a
+        href="https://www.linkedin.com/in/tanvir-sheikh-r/"
+        target="_blank"
+        rel="noreferrer"
+        title="ডেভেলপারের LinkedIn প্রোফাইল"
+        aria-label="ডেভেলপারের LinkedIn প্রোফাইল"
+        className="fixed right-1 bottom-1 z-40 grid size-14 place-items-center rounded-full border border-neutral-200 bg-white text-muted shadow-lg transition hover:border-accent/50 hover:text-accent-strong"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" className="size-6">
+          <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3.2 9.25h3.56V21H3.2V9.25Zm6.1 0h3.41v1.6h.05a3.74 3.74 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.45V21h-3.56v-5.63c0-1.34-.03-3.07-1.87-3.07-1.87 0-2.16 1.46-2.16 2.97V21H9.3V9.25Z" />
+        </svg>
+      </a>
     </main>
   );
 }

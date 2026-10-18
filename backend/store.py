@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from backend.config import THREADS_DIR
+from backend.config import THREAD_RETENTION_DAYS, THREADS_DIR
 
 _lock = threading.RLock()
 _ID_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -45,10 +45,11 @@ def _write(document: dict[str, Any]) -> None:
     os.replace(temporary, target)
 
 
-def create(context: dict[str, Any], title: str) -> dict[str, Any]:
+def create(context: dict[str, Any], title: str, client_id: str) -> dict[str, Any]:
     stamp = _now_iso()
     document = {
         "thread_id": new_thread_id(),
+        "client_id": client_id,
         "title": title.strip() or "নতুন চ্যাট",
         "context": context,
         "messages": [],
@@ -60,16 +61,45 @@ def create(context: dict[str, Any], title: str) -> dict[str, Any]:
     return document
 
 
-def get(thread_id: str) -> dict[str, Any]:
+def get(thread_id: str, client_id: str | None = None) -> dict[str, Any]:
     with _lock:
         path = _path(thread_id)
         if not path.exists():
             raise ThreadNotFound(f"No thread with id {thread_id}")
-        return json.loads(path.read_text(encoding="utf-8"))
+        document = json.loads(path.read_text(encoding="utf-8"))
+    if client_id is not None and document.get("client_id") != client_id:
+        # Another browser's thread: behave exactly as if it did not exist.
+        raise ThreadNotFound(f"No thread with id {thread_id}")
+    return document
 
 
-def list_all() -> list[dict[str, Any]]:
-    """Newest-updated first, with a preview of the last message for the sidebar."""
+def purge_expired(retention_days: int = THREAD_RETENTION_DAYS) -> int:
+    """Delete threads untouched for longer than the retention window."""
+    cutoff = time.time() - retention_days * 86400
+    removed = 0
+    with _lock:
+        if not THREADS_DIR.is_dir():
+            return 0
+        for path in THREADS_DIR.glob("*.json"):
+            try:
+                document = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            try:
+                updated = datetime.fromisoformat(str(document.get("updated_at")))
+            except (TypeError, ValueError):
+                continue
+            if updated.tzinfo is None:
+                updated = updated.replace(tzinfo=timezone.utc)
+            if updated.timestamp() < cutoff:
+                path.unlink(missing_ok=True)
+                removed += 1
+    return removed
+
+
+def list_all(client_id: str) -> list[dict[str, Any]]:
+    """Newest-updated first, limited to one browser's threads."""
+    purge_expired()
     with _lock:
         if not THREADS_DIR.is_dir():
             return []
@@ -78,6 +108,8 @@ def list_all() -> list[dict[str, Any]]:
             try:
                 document = json.loads(path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
+                continue
+            if document.get("client_id") != client_id:
                 continue
             documents.append(document)
 
@@ -123,6 +155,16 @@ def update_context(thread_id: str, context: dict[str, Any], title: str | None = 
         return document
 
 
+def rename(thread_id: str, title: str, client_id: str | None = None) -> dict[str, Any]:
+    """Give a thread a new title."""
+    with _lock:
+        document = get(thread_id, client_id)
+        document["title"] = title.strip() or document["title"]
+        document["updated_at"] = _now_iso()
+        _write(document)
+        return document
+
+
 def delete(thread_id: str) -> None:
     with _lock:
         path = _path(thread_id)
@@ -152,10 +194,10 @@ def _relative_bucket(updated_at: str | None) -> str:
     return "পুরোনো"
 
 
-def grouped() -> list[dict[str, Any]]:
+def grouped(client_id: str) -> list[dict[str, Any]]:
     """Threads bucketed for the sidebar's relative-date headers."""
     groups: list[dict[str, Any]] = []
-    for summary in list_all():
+    for summary in list_all(client_id):
         bucket = _relative_bucket(summary.get("updated_at"))
         if not groups or groups[-1]["label"] != bucket:
             groups.append({"label": bucket, "threads": []})

@@ -1,25 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import {
   Bookmark,
-  History,
   Home,
   Loader2,
-  Menu,
   MessageSquare,
+  Pencil,
   Search,
   Settings2,
+  Trash2,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import type { Health, ThreadGroup, TreeCounts } from "@/lib/types";
-
-export type SidebarSection = "home" | "saved" | "history";
-
-const NAV_ITEMS: { id: SidebarSection; label: string; icon: typeof Home }[] = [
-  { id: "home", label: "হোম", icon: Home },
-  { id: "saved", label: "সংরক্ষিত", icon: Bookmark },
-  { id: "history", label: "ইতিহাস", icon: History },
-];
 
 export function Sidebar({
   userName,
@@ -31,7 +24,9 @@ export function Sidebar({
   counts,
   onSearchChange,
   onSelectThread,
-  onSectionChange,
+  onHome,
+  onRenameThread,
+  onDeleteThread,
   onRenameUser,
 }: {
   userName: string;
@@ -43,10 +38,41 @@ export function Sidebar({
   counts: TreeCounts | null;
   onSearchChange: (value: string) => void;
   onSelectThread: (threadId: string) => void;
-  onSectionChange: (section: SidebarSection) => void;
+  onHome: () => void;
+  onRenameThread: (threadId: string, currentTitle: string) => void;
+  onDeleteThread: (threadId: string) => void;
   onRenameUser: () => void;
 }) {
   const query = search.trim().toLowerCase();
+  const retentionDays = health?.thread_retention_days;
+
+  // Renaming happens inline in the row: a browser prompt() can be suppressed by the
+  // user (Chrome's "prevent additional dialogs"), which made renaming silently fail.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+
+  function beginRename(threadId: string, currentTitle: string) {
+    setEditingId(threadId);
+    setDraft(currentTitle);
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setDraft("");
+  }
+
+  function commitRename() {
+    const threadId = editingId;
+    if (!threadId) {
+      return;
+    }
+    const title = draft.trim();
+    setEditingId(null);
+    setDraft("");
+    if (title) {
+      onRenameThread(threadId, title);
+    }
+  }
   const visibleGroups = groups
     .map((group) => ({
       label: group.label,
@@ -60,10 +86,8 @@ export function Sidebar({
     }))
     .filter((group) => group.threads.length > 0);
 
-  const totalThreads = groups.reduce((sum, group) => sum + group.threads.length, 0);
-
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col border-r border-neutral-200/70 bg-surface">
+    <aside className="flex h-full w-[260px] shrink-0 flex-col bg-surface">
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <span className="grid size-8 place-items-center rounded-xl bg-accent text-white">
           <Bookmark className="size-4" />
@@ -81,43 +105,31 @@ export function Sidebar({
             aria-label="চ্যাট খুঁজুন"
             className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-muted"
           />
-          <kbd className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-muted">
+          <kbd className="rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-muted">
             ⌘K
           </kbd>
         </div>
       </div>
 
-      <nav className="mt-3 space-y-0.5 px-3">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSectionChange(item.id)}
-              className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] text-neutral-600 transition hover:bg-neutral-100 hover:text-ink"
-            >
-              <Icon className="size-4 shrink-0 text-muted" />
-              <span className="flex-1">{item.label}</span>
-              {item.id === "history" && totalThreads > 0 ? (
-                <span className="text-[11px] text-muted">{totalThreads}</span>
-              ) : null}
-            </button>
-          );
-        })}
+      <nav className="mt-3 px-3">
+        <button
+          type="button"
+          onClick={onHome}
+          className="flex w-full items-center gap-2.5 rounded-xl bg-neutral-100 px-2.5 py-2 text-left text-[14px] font-medium text-ink transition hover:bg-neutral-200/70"
+        >
+          <Home className="size-4 shrink-0 text-accent" />
+          <span className="flex-1">হোম</span>
+        </button>
       </nav>
 
       <div className="mt-4 flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between px-5 pb-2">
-          <span className="text-[11px] font-medium tracking-wide text-muted">চ্যাট</span>
-          <button
-            type="button"
-            onClick={() => onSectionChange("history")}
-            aria-label="সব চ্যাট"
-            className="rounded-md p-1 text-muted transition hover:bg-neutral-100 hover:text-ink"
-          >
-            <Menu className="size-3.5" />
-          </button>
+        <div className="px-5 pb-2">
+          <span className="text-[12px] font-medium tracking-wide text-muted">চ্যাট</span>
+          {retentionDays ? (
+            <p className="pt-0.5 text-[11px] leading-snug text-muted/80">
+              {retentionDays} দিন পর পুরোনো চ্যাট মুছে যায়
+            </p>
+          ) : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
@@ -132,27 +144,75 @@ export function Sidebar({
           ) : (
             visibleGroups.map((group) => (
               <div key={group.label} className="mb-3">
-                <p className="px-2 pb-1.5 text-[11px] text-muted">{group.label}</p>
+                <p className="px-2 pb-1.5 text-[12px] text-muted">{group.label}</p>
                 <div className="space-y-0.5">
                   {group.threads.map((thread) => {
                     const active = thread.thread_id === activeThreadId;
+                    const editing = editingId === thread.thread_id;
                     return (
-                      <button
+                      <div
                         key={thread.thread_id}
-                        type="button"
-                        onClick={() => onSelectThread(thread.thread_id)}
-                        title={thread.title}
-                        className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[12.5px] transition ${
-                          active
-                            ? "bg-accent-soft text-accent-strong"
-                            : "text-neutral-600 hover:bg-neutral-100 hover:text-ink"
+                        className={`group flex items-center gap-0.5 rounded-xl pr-1 transition ${
+                          active ? "bg-accent-soft" : "hover:bg-neutral-100"
                         }`}
                       >
-                        <MessageSquare
-                          className={`size-3.5 shrink-0 ${active ? "text-accent" : "text-muted"}`}
-                        />
-                        <span className="truncate">{thread.title}</span>
-                      </button>
+                        {editing ? (
+                          <div className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-2.5">
+                            <MessageSquare className="size-3.5 shrink-0 text-accent" />
+                            <input
+                              autoFocus
+                              value={draft}
+                              onChange={(event) => setDraft(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  commitRename();
+                                } else if (event.key === "Escape") {
+                                  event.preventDefault();
+                                  cancelRename();
+                                }
+                              }}
+                              onBlur={commitRename}
+                              aria-label="চ্যাটের নতুন নাম"
+                              className="min-w-0 flex-1 rounded-md border border-accent/50 bg-white px-1.5 py-0.5 text-[13.5px] text-ink outline-none"
+                            />
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onSelectThread(thread.thread_id)}
+                            title={thread.title}
+                            className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl py-2 pl-2.5 text-left text-[13.5px] ${
+                              active ? "text-accent-strong" : "text-neutral-600 hover:text-ink"
+                            }`}
+                          >
+                            <MessageSquare
+                              className={`size-3.5 shrink-0 ${active ? "text-accent" : "text-muted"}`}
+                            />
+                            <span className="truncate">{thread.title}</span>
+                          </button>
+                        )}
+                        <span className="flex shrink-0 items-center opacity-40 transition group-focus-within:opacity-100 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => beginRename(thread.thread_id, thread.title)}
+                            title="নাম বদলাও"
+                            aria-label={`${thread.title} — নাম বদলাও`}
+                            className="rounded-md p-1 text-muted transition hover:bg-white hover:text-accent-strong"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteThread(thread.thread_id)}
+                            title="মুছে ফেলো"
+                            aria-label={`${thread.title} — মুছে ফেলো`}
+                            className="rounded-md p-1 text-muted transition hover:bg-white hover:text-rose-600"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </span>
+                      </div>
                     );
                   })}
                 </div>
@@ -170,8 +230,8 @@ export function Sidebar({
         >
           <Avatar name={userName} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium text-ink">{userName}</span>
-            <span className="block truncate text-[11px] text-muted">
+            <span className="block truncate text-[14px] font-medium text-ink">{userName}</span>
+            <span className="block truncate text-[12px] text-muted">
               {counts
                 ? `${counts.indexed_books} বই প্রস্তুত · ${counts.chapters} চ্যাপটার`
                 : "পাঠ্যবই অ্যাসিস্ট্যান্ট"}
@@ -180,7 +240,7 @@ export function Sidebar({
           <Settings2 className="size-3.5 shrink-0 text-muted" />
         </button>
         {health ? (
-          <p className="px-2 pt-1 text-[10px] leading-relaxed text-muted">
+          <p className="px-2 pt-1 text-[11px] leading-relaxed text-muted">
             {health.llm_model} · {health.device} · {health.dimension}d
           </p>
         ) : null}

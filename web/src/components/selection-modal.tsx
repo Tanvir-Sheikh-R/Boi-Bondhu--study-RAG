@@ -165,7 +165,7 @@ export function SelectionModal({
               })}
             </select>
             {classNode?.nested ? (
-              <p className="pt-1.5 text-[11px] leading-relaxed text-muted">
+              <p className="pt-1.5 text-[12px] leading-relaxed text-muted">
                 ৯ম-১০ম শ্রেণিতে বিষয়ের আগে বিভাগ আছে: general, science, arts, commerce।
               </p>
             ) : null}
@@ -239,7 +239,7 @@ function Field({
     <div>
       <div className="flex items-baseline justify-between pb-1.5">
         <span className="text-xs font-medium text-neutral-700">{label}</span>
-        {hint ? <span className="text-[11px] text-muted">{hint}</span> : null}
+        {hint ? <span className="text-[12px] text-muted">{hint}</span> : null}
       </div>
       {children}
     </div>

@@ -29,6 +29,18 @@ class ThreadContextUpdate(BaseModel):
     context: ChapterContext
 
 
+class ThreadRename(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+
+    @field_validator("title")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
 class ChatMessageIn(BaseModel):
     message: str
 
@@ -82,3 +94,4 @@ class HealthOut(BaseModel):
     indexed_books: int
     named_books: int
     llm_model: str
+    thread_retention_days: int

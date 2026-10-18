@@ -8,6 +8,15 @@
   --color-surface: #ffffff;
   --color-muted: #8a8a94;
   --color-ink: #14141a;
+
+  /* Type scale nudged +1px over Tailwind's defaults for readability. */
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.9375rem; /* 15px */
+  --text-base: 1.0625rem; /* 17px */
+  --text-lg: 1.1875rem; /* 19px */
+  --text-xl: 1.3125rem; /* 21px */
+  --text-2xl: 1.5625rem; /* 25px */
+  --text-3xl: 1.9375rem; /* 31px */
 }
 
 @layer base {

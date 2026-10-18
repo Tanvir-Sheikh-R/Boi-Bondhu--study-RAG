@@ -72,14 +72,20 @@ export function ChatComposer({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          disabled
-          title="ফাইল সংযুক্তি এখনো যোগ করা হয়নি"
-          className="grid size-7 shrink-0 place-items-center rounded-full text-muted/60"
-        >
-          <Paperclip className="size-3.5" />
-        </button>
+        {/* Attachments are not implemented yet, so this is rendered visibly disabled.
+            The title sits on the wrapper: a disabled button swallows pointer events,
+            which would hide its own tooltip. */}
+        <span title="ফাইল সংযুক্তি এখনো যোগ করা হয়নি" className="inline-flex">
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            aria-label="ফাইল সংযুক্তি (এখনো যোগ করা হয়নি)"
+            className="grid size-7 shrink-0 cursor-not-allowed place-items-center rounded-full bg-neutral-100/70 text-neutral-300 opacity-50"
+          >
+            <Paperclip className="size-3.5" />
+          </button>
+        </span>
 
         {QUICK_ACTIONS.map((action) => {
           const Icon = action.icon;
@@ -88,7 +94,7 @@ export function ChatComposer({
               key={action.label}
               type="button"
               onClick={() => onChange(action.prompt)}
-              className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 py-1.5 text-[11.5px] text-neutral-600 transition hover:border-accent/40 hover:text-accent-strong"
+              className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 py-1.5 text-[12.5px] text-neutral-600 transition hover:border-accent/40 hover:text-accent-strong"
             >
               <Icon className="size-3" />
               {action.label}
@@ -97,7 +103,7 @@ export function ChatComposer({
         })}
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          {hint ? <span className="truncate text-[11px] text-muted">{hint}</span> : null}
+          {hint ? <span className="truncate text-[12px] text-muted">{hint}</span> : null}
           {canStop ? (
             <button
               type="button"
