@@ -21,6 +21,16 @@ const API_PORT = 8000;
  * honoured, which keeps split (separate-host) deployments working.
  */
 function apiBase(): string {
+  // If page is loaded over HTTPS, prevent insecure mixed-content HTTP requests.
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    const configured = process.env.NEXT_PUBLIC_API_BASE;
+    if (configured && configured.startsWith("https://")) {
+      return configured.replace(/\/+$/, "");
+    }
+    // Behind Caddy or reverse proxy on HTTPS: relative path routes directly to /api/*
+    return "";
+  }
+
   const configured = process.env.NEXT_PUBLIC_API_BASE;
   if (configured) {
     return configured.replace(/\/+$/, "");
@@ -28,6 +38,11 @@ function apiBase(): string {
   if (typeof window === "undefined") {
     return `http://127.0.0.1:${API_PORT}`;
   }
+  // When running behind Caddy / reverse proxy on standard HTTP port (port 80)
+  if (window.location.port === "" || window.location.port === "80" || window.location.port === "443") {
+    return "";
+  }
+  // Local standalone dev (e.g. localhost:3000 -> localhost:8000)
   return `${window.location.protocol}//${window.location.hostname}:${API_PORT}`;
 }
 

@@ -15,11 +15,9 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - PYTHONUNBUFFERED=1
-      # Browsers omit the default HTTP port from Origin, so a UI published on port 80 is
-      # reached as http://<host> — the bare host must be listed, not just http://<host>:80.
-      # Both the domain and the raw IP are allowed, so the app works whichever way it is
-      # opened. A blocked origin surfaces in the browser as a bare "Failed to fetch".
-      - CORS_ORIGINS=http://${PUBLIC_HOST:-16.192.163.122},http://${PUBLIC_HOST:-16.192.163.122}:80,http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org},http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org}:80,http://localhost,http://127.0.0.1,http://localhost:3000,http://127.0.0.1:3000
+      # Browsers omit the default HTTP/HTTPS ports (80/443) from Origin.
+      # Both domain and raw IP with https and http are allowed.
+      - CORS_ORIGINS=https://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org},http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org},https://${PUBLIC_HOST:-16.192.163.122},http://${PUBLIC_HOST:-16.192.163.122},http://${PUBLIC_HOST:-16.192.163.122}:80,http://${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org}:80,http://localhost,http://127.0.0.1,http://localhost:3000,http://127.0.0.1:3000
       - HF_HUB_OFFLINE=1
       - TRANSFORMERS_OFFLINE=1
     env_file:
@@ -54,20 +52,53 @@ services:
       dockerfile: Dockerfile
     container_name: tanvirsheikh_study_rag_web_V3
     restart: unless-stopped
-    ports:
-      - "80:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
       # No NEXT_PUBLIC_API_BASE here on purpose: the browser bundle derives the API
-      # host from its own location at runtime (see web/src/lib/api.ts), so changing
-      # PUBLIC_HOST no longer requires rebuilding this image.
+      # host from its own location at runtime (see web/src/lib/api.ts).
     depends_on:
       backend:
         condition: service_healthy
     networks:
       - study-rag-network
+
+  # ========================================================
+  # 3. Caddy Reverse Proxy (Automatic HTTPS via Let's Encrypt)
+  # ========================================================
+  caddy:
+    image: tanvirsheikh/study-rag-caddy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: tanvirsheikh_study-rag-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-boi-bondhu.duckdns.org}
+      - PUBLIC_HOST=${PUBLIC_HOST:-16.192.163.122}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      web:
+        condition: service_started
+    networks:
+      - study-rag-network
+
+volumes:
+  # Persist Let's Encrypt SSL certificates & keys across container redeployments
+  caddy_data:
+  caddy_config:
 
 networks:
   study-rag-network:

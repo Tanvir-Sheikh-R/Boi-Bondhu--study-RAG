@@ -1,0 +1,15 @@
+boi-bondhu.duckdns.org {
+	handle /api/* {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+boi-bondhu.duckdns.org:8000 {
+	reverse_proxy backend:8000 {
+		flush_interval -1
+	}
+}
